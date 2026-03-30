@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#ff5500"/>
+<meta name="description" content="Calculate and track recruiting ROI metrics with precision. Works offline."/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ROI Calc"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23000000' width='192' height='192'/><text x='96' y='110' font-size='100' font-weight='bold' fill='%23ff5500' text-anchor='middle' font-family='Arial'>₹</text></svg>"/>
+<title>Recruiter ROI Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Tokens ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#000000;
+  --surface:#0a0a0a;
+  --surface2:#111111;
+  --surface3:#181818;
+  --border:#1e1e1e;
+  --border2:#282828;
+  --border3:#363636;
+  --orange:#ff5500;
+  --orange-dim:rgba(255,85,0,0.08);
+  --orange-mid:rgba(255,85,0,0.14);
+  --orange-glow:rgba(255,85,0,0.26);
+  --amber:#ff8c00;
+  --amber-dim:rgba(255,140,0,0.07);
+  --amber-glow:rgba(255,140,0,0.2);
+  --text:#ffffff;
+  --text2:#a0a0a0;
+  --text3:#505050;
+  --text4:#2a2a2a;
+  --danger:#ff4444;
+  --font:'Inter',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --r:3px;
+  --r-lg:5px;
+}
+
+/* ── Base ── */
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  min-height:100vh;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ── Ambient background ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 55% at 10% 0%,  rgba(255,85,0,0.055) 0%,transparent 65%),
+    radial-gradient(ellipse 50% 40% at 90% 100%, rgba(255,85,0,0.03)  0%,transparent 55%);
+}
+/* dot-grid */
+body::after{
+  content:'';
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(circle,rgba(255,255,255,0.032) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+
+/* ── App shell ── */
+.app{
+  position:relative;z-index:1;
+  max-width:1160px;margin:0 auto;
+  padding:2rem 1.5rem 5.5rem;
+}
+@media(min-width:860px){.app{padding-bottom:2.5rem;}}
+
+/* ── Header ── */
+.header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:1.5rem;margin-bottom:2.75rem;flex-wrap:wrap;
+}
+.header-left{flex:1;min-width:240px;}
+
+.badge{
+  display:inline-flex;align-items:center;gap:.45rem;
+  font-size:.59rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--orange);background:var(--orange-dim);
+  border:1px solid var(--orange-glow);
+  padding:.3rem .8rem .3rem .65rem;
+  margin-bottom:.9rem;border-radius:var(--r);
+}
+.badge-dot{
+  width:5px;height:5px;background:var(--orange);border-radius:50%;flex-shrink:0;
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.25;transform:scale(.65);}}
+
+h1{
+  font-size:clamp(1.9rem,5.5vw,3rem);
+  font-weight:800;letter-spacing:-.035em;
+  color:#fff;line-height:1.0;
+}
+h1 .accent{color:var(--orange);}
+
+.header-sub{
+  margin-top:.7rem;font-size:.78rem;color:var(--text2);
+  max-width:430px;line-height:1.8;
+}
+
+.header-meta{
+  display:flex;flex-direction:column;align-items:flex-end;
+  gap:.5rem;flex-shrink:0;padding-top:.15rem;
+}
+.date-display{
+  font-family:var(--mono);font-size:.7rem;color:var(--text2);
+  text-align:right;letter-spacing:.03em;
+}
+.cal-pills{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end;}
+.pill{
+  font-size:.57rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  padding:.26rem .68rem;border-radius:var(--r);border:1px solid;white-space:nowrap;
+}
+.pill.default{background:var(--surface2);border-color:var(--border2);color:var(--text3);}
+.pill.orange{background:var(--orange-dim);border-color:var(--orange-glow);color:var(--orange);}
+.pill.blue{background:var(--amber-dim);border-color:var(--amber-glow);color:var(--amber);}
+
+/* ── Two-column grid ── */
+.grid{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:1.5rem;
+  align-items:start;
+}
+@media(max-width:860px){.grid{grid-template-columns:1fr;}}
+
+/* sticky input column on desktop */
+.panel-sticky{position:sticky;top:1.5rem;}
+
+/* ── Card base ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  position:relative;
+  overflow:hidden;
+}
+/* subtle top-edge gradient line */
+.card::after{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 5%,rgba(255,85,0,0.28) 50%,transparent 95%);
+  pointer-events:none;
+}
+.card.amber::after{
+  background:linear-gradient(90deg,transparent 5%,rgba(255,140,0,0.3) 50%,transparent 95%);
+}
+
+/* ── Input Panel ── */
+.panel{padding:1.75rem 1.6rem;}
+
+.section-label{
+  font-size:.57rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:1.5rem;
+  display:flex;align-items:center;gap:.6rem;
+}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── Fields ── */
+.field{margin-bottom:1.25rem;}
+.field:last-of-type{margin-bottom:0;}
+
+label{
+  display:block;font-size:.62rem;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text2);margin-bottom:.5rem;
+}
+
+.input-wrap{
+  display:flex;align-items:stretch;
+  border:1px solid var(--border2);border-radius:var(--r);
+  background:rgba(0,0,0,.6);
+  transition:border-color .2s,box-shadow .2s;
+  overflow:hidden;
+}
+.input-wrap:focus-within{
+  border-color:var(--orange);
+  box-shadow:0 0 0 3px var(--orange-dim),0 0 18px rgba(255,85,0,0.07);
+}
+.input-wrap.amber:focus-within{
+  border-color:var(--amber);
+  box-shadow:0 0 0 3px var(--amber-dim),0 0 18px rgba(255,140,0,0.06);
+}
+
+.sym{
+  padding:0 .85rem;
+  font-family:var(--mono);font-size:.67rem;font-weight:500;
+  color:var(--orange);background:rgba(255,85,0,0.045);
+  border-right:1px solid var(--border2);
+  display:flex;align-items:center;white-space:nowrap;flex-shrink:0;
+  letter-spacing:.04em;
+}
+.sym.amber{color:var(--amber);background:rgba(255,140,0,0.04);}
+
+input[type="number"],
+input[type="date"]{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:.8rem .9rem;min-height:46px;
+  color:var(--text);font-family:var(--mono);font-size:.85rem;
+  min-width:0;color-scheme:dark;
+}
+select{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:.8rem 2.2rem .8rem .9rem;min-height:46px;
+  color:var(--text);font-family:var(--font);font-size:.82rem;
+  min-width:0;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23505050' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right .9rem center;
+}
+select option{background:var(--surface2);}
+input[type="number"]{-moz-appearance:textfield;}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button{-webkit-appearance:none;}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;}
+@media(max-width:380px){.field-row{grid-template-columns:1fr;}}
+
+.hint{font-size:.6rem;color:var(--text3);margin-top:.42rem;line-height:1.65;}
+.err-msg{font-size:.65rem;color:var(--danger);margin-top:.6rem;display:none;}
+.err-msg.show{display:block;}
+
+.divider{
+  display:flex;align-items:center;gap:.7rem;
+  margin:1.5rem 0 1.35rem;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.divider span{
+  font-size:.56rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--amber);white-space:nowrap;flex-shrink:0;
+}
+
+/* ── Results stack ── */
+.results-stack{display:flex;flex-direction:column;gap:1.25rem;}
+
+/* ── KPI strip ── */
+.kpi-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;
+}
+@media(max-width:520px){.kpi-row{grid-template-columns:1fr;}}
+
+.kpi{
+  background:var(--surface);
+  padding:1.4rem 1.2rem;
+  position:relative;overflow:hidden;
+  transition:background .3s;
+}
+.kpi.primary{
+  background:linear-gradient(145deg,rgba(255,85,0,0.1),rgba(255,85,0,0.04) 55%,var(--surface));
+}
+/* orange glow blob on primary */
+.kpi.primary::before{
+  content:'';
+  position:absolute;top:-25px;right:-25px;
+  width:90px;height:90px;
+  background:radial-gradient(circle,rgba(255,85,0,0.18),transparent 68%);
+  pointer-events:none;
+}
+
+.kpi-label{
+  font-size:.57rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:.55rem;
+}
+.kpi-val{
+  font-family:var(--mono);
+  font-size:clamp(1.1rem,2.5vw,1.5rem);
+  font-weight:600;color:var(--text);
+  line-height:1;letter-spacing:-.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.kpi.primary .kpi-val{color:var(--orange);}
+.kpi-sub{font-size:.57rem;color:var(--text3);margin-top:.42rem;}
+
+/* ── ROI Hero ── */
+.roi-hero{
+  padding:1.6rem 1.5rem;
+  display:grid;grid-template-columns:auto 1fr;
+  gap:1.75rem;align-items:center;
+}
+@media(max-width:500px){.roi-hero{grid-template-columns:1fr;gap:1.1rem;}}
+
+.roi-number-wrap{display:flex;flex-direction:column;align-items:flex-start;}
+.roi-eyebrow{
+  font-size:.54rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:.45rem;
+}
+.roi-mult{
+  font-family:var(--mono);
+  font-size:clamp(3rem,7vw,4.8rem);
+  font-weight:600;color:var(--orange);
+  line-height:.9;letter-spacing:-.03em;
+}
+.roi-mult.blank{color:var(--text4);font-size:2.5rem;}
+
+.roi-detail{}
+.roi-text{font-size:.82rem;color:var(--text2);line-height:1.8;margin-bottom:.9rem;}
+.roi-text strong{color:var(--text);}
+
+.roi-bar-labels{
+  display:flex;justify-content:space-between;
+  font-size:.57rem;color:var(--text3);
+  font-family:var(--mono);margin-bottom:.35rem;
+}
+.roi-bar-track{
+  height:3px;background:var(--border2);border-radius:2px;overflow:hidden;
+}
+.roi-bar-fill{
+  height:100%;width:0%;border-radius:2px;
+  background:linear-gradient(90deg,var(--orange),#ff9a00);
+  transition:width .9s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Breakdown ── */
+.breakdown{
+  display:flex;flex-wrap:wrap;gap:.5rem 2rem;
+  padding:1rem 1.25rem;
+}
+.bd-item{font-size:.62rem;color:var(--text3);}
+.bd-item strong{
+  display:block;font-family:var(--mono);font-size:.8rem;
+  color:var(--text);margin-bottom:.1rem;font-weight:500;
+}
+
+/* ── Cost card ── */
+.cost-header{
+  padding:1.15rem 1.4rem;
+  background:linear-gradient(135deg,rgba(255,140,0,0.07),transparent);
+  border-bottom:1px solid rgba(255,140,0,0.12);
+  display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;
+}
+.cost-header-label{
+  font-size:.57rem;font-weight:600;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--amber);
+}
+.cost-total{
+  font-family:var(--mono);font-size:1.45rem;font-weight:500;
+  color:var(--amber);letter-spacing:-.02em;
+}
+
+.cost-rows-table{width:100%;border-collapse:collapse;}
+.cost-rows-table tr{border-bottom:1px solid var(--border);}
+.cost-rows-table tr:last-child{border-bottom:none;}
+.cost-rows-table td{padding:.7rem 1.3rem;font-size:.72rem;vertical-align:middle;}
+.cost-rows-table .td-label{color:var(--text2);}
+.cost-rows-table .td-label small{display:block;font-size:.58rem;color:var(--text3);margin-top:.1rem;}
+.cost-rows-table .td-val{text-align:right;font-family:var(--mono);font-size:.78rem;color:var(--text);white-space:nowrap;}
+.cost-rows-table tr.total-row td{background:rgba(255,140,0,0.05);}
+.cost-rows-table tr.total-row .td-label{color:var(--amber);font-weight:600;}
+.cost-rows-table tr.total-row .td-val{color:var(--amber);}
+.cost-footer{
+  padding:.65rem 1.3rem;font-size:.6rem;color:var(--text3);
+  line-height:1.75;border-top:1px solid var(--border);
+}
+
+/* ── Placeholder ── */
+.placeholder{padding:4.5rem 2rem;text-align:center;}
+.placeholder-icon{font-size:2.5rem;margin-bottom:1rem;opacity:.1;filter:grayscale(1);}
+.placeholder-title{font-size:.95rem;font-weight:600;color:var(--text2);margin-bottom:.5rem;}
+.placeholder-sub{font-size:.75rem;color:var(--text3);max-width:260px;margin:0 auto;line-height:1.85;}
+
+/* ── Report section ── */
+.report-wrap{
+  margin-top:2rem;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .5s ease,transform .5s ease;
+  pointer-events:none;
+}
+.report-wrap.visible{opacity:1;transform:none;pointer-events:auto;}
+
+.report{padding:2rem 2rem 1.75rem;}
+
+.report-header{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding-bottom:1.25rem;border-bottom:1px solid var(--border);
+  margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap;
+}
+.report-title-block{}
+.report-eyebrow{
+  font-size:.57rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--orange);margin-bottom:.4rem;
+}
+.report-title{font-size:1.3rem;font-weight:700;letter-spacing:-.02em;color:#fff;}
+
+.report-meta-block{text-align:right;flex-shrink:0;}
+.report-meta-block p{font-size:.62rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;line-height:2.1;}
+.report-meta-block .hi{color:var(--orange);}
+
+.report-body{font-size:.84rem;color:#8a9ab0;line-height:2;}
+.report-body p{margin-bottom:1rem;}
+.report-body p:last-child{margin-bottom:0;}
+.report-body strong{color:var(--text);font-weight:600;}
+.report-body strong.blue{color:var(--amber);}
+
+.report-section-head{
+  display:flex;align-items:center;gap:.75rem;
+  margin:1.5rem 0 .9rem;
+}
+.report-section-head span{
+  font-size:.57rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text3);white-space:nowrap;flex-shrink:0;
+}
+.report-section-head::before,
+.report-section-head::after{content:'';flex:1;height:1px;background:var(--border);}
+.report-section-head.blue-head span{color:var(--amber);}
+.report-section-head.blue-head::before,
+.report-section-head.blue-head::after{background:rgba(255,140,0,0.15);}
+
+.report-cost-table{
+  width:100%;border-collapse:collapse;margin:.75rem 0;
+  font-family:var(--mono);font-size:.67rem;
+}
+.report-cost-table th,.report-cost-table td{
+  padding:.55rem .75rem;border:1px solid var(--border);
+}
+.report-cost-table th{
+  color:var(--text3);font-size:.57rem;letter-spacing:.12em;
+  text-transform:uppercase;font-weight:400;
+}
+.report-cost-table .val{text-align:right;color:var(--text);}
+.report-cost-table .total-r td{background:rgba(255,140,0,0.05);color:var(--amber);}
+.report-cost-table .total-r .val{color:var(--amber);}
+
+.verdict{
+  margin-top:1.5rem;
+  border-left:2px solid var(--orange);
+  padding:1rem 1.25rem;
+  background:linear-gradient(90deg,var(--orange-dim),transparent 80%);
+  font-size:.83rem;color:#b0a090;line-height:1.85;
+  border-radius:0 var(--r) var(--r) 0;
+}
+.verdict strong{color:var(--orange);font-weight:600;}
+
+.report-actions{
+  display:flex;gap:.6rem;margin-top:1.5rem;flex-wrap:wrap;
+}
+.action-btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.72rem 1.15rem;
+  font-family:var(--font);font-size:.72rem;font-weight:500;letter-spacing:.05em;
+  cursor:pointer;
+  border:1px solid var(--border2);background:transparent;color:var(--text2);
+  border-radius:var(--r);transition:all .18s;white-space:nowrap;
+}
+.action-btn:hover{color:var(--text);border-color:var(--border3);background:var(--surface2);}
+.action-btn.primary{
+  background:var(--orange);color:#000;
+  border-color:var(--orange);font-weight:700;
+}
+.action-btn.primary:hover{background:#e64d00;border-color:#e64d00;}
+@media(max-width:500px){
+  .action-btn{flex:1;justify-content:center;}
+}
+
+/* ── Mobile sticky stats bar ── */
+.mobile-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(8,8,8,.97);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--border2);
+  padding:.8rem 1.25rem calc(.8rem + env(safe-area-inset-bottom));
+  z-index:200;
+}
+@media(max-width:860px){
+  .mobile-bar.active{display:flex;}
+}
+.mb-stat{
+  flex:1;text-align:center;
+  padding:.05rem .4rem;
+}
+.mb-stat + .mb-stat{border-left:1px solid var(--border);}
+.mb-label{
+  font-size:.52rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:.18rem;
+}
+.mb-val{
+  font-family:var(--mono);font-size:.92rem;font-weight:500;
+  color:var(--text);letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mb-val.orange{color:var(--orange);}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:2rem;left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--orange);color:#000;
+  font-size:.7rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:.55rem 1.3rem;border-radius:var(--r);
+  opacity:0;pointer-events:none;
+  transition:all .25s ease;z-index:9999;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Footer ── */
+footer{
+  margin-top:2.5rem;padding:1.25rem 0 .5rem;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+}
+footer p{font-size:.6rem;color:var(--text3);letter-spacing:.04em;line-height:1.8;}
+
+/* ── Print ── */
+@media print{
+  body{background:#fff;color:#111;}
+  .panel-sticky,.mobile-bar{display:none!important;}
+  .report-wrap{opacity:1!important;transform:none!important;pointer-events:auto!important;}
+  .report-actions,.toast,footer{display:none!important;}
+}
+
+/* ── Animations ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.animate{animation:fadeUp .45s ease both;}
+.animate:nth-child(2){animation-delay:.08s;}
+.animate:nth-child(3){animation-delay:.15s;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─── Header ─── -->
+  <header class="header animate">
+    <div class="header-left">
+      <div class="badge"><span class="badge-dot"></span>🇵🇹 Portuguese Calendar</div>
+      <h1>Recruiter <span class="accent">ROI</span><br>Calculator</h1>
+      <p class="header-sub">Working days from 1 Jan to selected date — public holidays &amp; vacation discounted automatically.</p>
+    </div>
+    <div class="header-meta">
+      <p class="date-display" id="todayStr"></p>
+      <div class="cal-pills" id="calPills"></div>
+    </div>
+  </header>
+
+  <!-- ─── Main Grid ─── -->
+  <div class="grid">
+
+    <!-- Input Panel -->
+    <div class="panel-sticky animate">
+      <div class="card panel">
+        <p class="section-label">Inputs</p>
+
+        <div class="field">
+          <label>Calculate Up To</label>
+          <div class="input-wrap">
+            <span class="sym">date</span>
+            <input type="date" id="customDate"/>
+          </div>
+          <p class="hint">Leave blank for today · future dates allowed for projected billing</p>
+        </div>
+
+        <div class="field">
+          <label>Total Value Delivered to Company</label>
+          <div class="input-wrap">
+            <span class="sym">€</span>
+            <input type="number" id="totalValue" placeholder="e.g. 250 000" min="0" step="1000"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Vacation Days Taken</label>
+          <div class="input-wrap">
+            <span class="sym">days</span>
+            <input type="number" id="vacDays" placeholder="0" min="0" max="365" step="1"/>
+          </div>
+        </div>
+
+        <div class="divider"><span>// Employee Cost</span></div>
+
+        <div class="field">
+          <label>Contract Type</label>
+          <div class="input-wrap amber">
+            <span class="sym amber">type</span>
+            <select id="contractType">
+              <option value="clt">Contrato de Trabalho (CLT)</option>
+              <option value="verde">Recibo Verde (Independente)</option>
+              <option value="estagio">Estágio Profissional (IEFP)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Monthly Gross Wage</label>
+          <div class="input-wrap amber">
+            <span class="sym amber">€</span>
+            <input type="number" id="monthlyGross" placeholder="e.g. 2 500" min="0" step="50"/>
+          </div>
+          <p class="hint">Used to derive your hourly rate &amp; employer cost breakdown</p>
+        </div>
+
+        <p class="err-msg" id="errMsg">Please enter a Total Value and Monthly Gross Wage greater than zero.</p>
+      </div>
+    </div>
+
+    <!-- Results Panel -->
+    <div id="resultsArea" class="animate">
+
+      <!-- Placeholder -->
+      <div class="card placeholder" id="placeholder">
+        <div class="placeholder-icon">📊</div>
+        <p class="placeholder-title">Results will appear here</p>
+        <p class="placeholder-sub">Fill in the Total Value and Monthly Gross Wage on the left to see your ROI in real time.</p>
+      </div>
+
+      <!-- Live Results -->
+      <div id="liveResults" style="display:none" class="results-stack">
+
+        <!-- KPI strip -->
+        <div class="kpi-row">
+          <div class="kpi primary">
+            <p class="kpi-label">Monthly Value</p>
+            <div class="kpi-val" id="kMonthly">—</div>
+            <p class="kpi-sub" id="kMonthlySub"></p>
+          </div>
+          <div class="kpi">
+            <p class="kpi-label">Daily Value</p>
+            <div class="kpi-val" id="kDaily">—</div>
+            <p class="kpi-sub">per working day</p>
+          </div>
+          <div class="kpi">
+            <p class="kpi-label">Hourly Value</p>
+            <div class="kpi-val" id="kHourly">—</div>
+            <p class="kpi-sub">per hour worked</p>
+          </div>
+        </div>
+
+        <!-- ROI Hero card -->
+        <div class="card">
+          <div class="roi-hero">
+            <div class="roi-number-wrap">
+              <p class="roi-eyebrow">ROI Multiplier</p>
+              <div class="roi-mult" id="roiMult">—</div>
+            </div>
+            <div class="roi-detail">
+              <p class="roi-text" id="roiText">—</p>
+              <div>
+                <div class="roi-bar-labels"><span>0×</span><span id="barMax">20×</span></div>
+                <div class="roi-bar-track"><div class="roi-bar-fill" id="roiBar"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown strip -->
+        <div class="card">
+          <div class="breakdown" id="breakdown"></div>
+        </div>
+
+        <!-- Cost card -->
+        <div class="card amber" id="costCard" style="display:none">
+          <div class="cost-header">
+            <span class="cost-header-label">Total Employer Cost to Date</span>
+            <span class="cost-total" id="costTotal">—</span>
+          </div>
+          <table class="cost-rows-table" id="costTable"></table>
+          <div class="cost-footer" id="costFooter"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Report section ─── -->
+  <div class="report-wrap" id="reportWrap">
+    <div class="card report">
+      <div class="report-header">
+        <div class="report-title-block">
+          <p class="report-eyebrow">// Performance Report</p>
+          <div class="report-title">ROI &amp; Cost Summary</div>
+        </div>
+        <div class="report-meta-block">
+          <p id="rMetaDate"></p>
+          <p id="rMetaPeriod"></p>
+          <p><span class="hi" id="rMetaDays"></span></p>
+        </div>
+      </div>
+      <div class="report-body" id="reportBody"></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="report-actions">
+        <button class="action-btn" onclick="copyReport()">⎘ Copy as Text</button>
+        <button class="action-btn primary" onclick="window.print()">↓ Print / Export PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Portuguese national holidays auto-calculated · Easter computed dynamically · SS rates per Lei n.º 110/2009</p>
+    <p>Recruiter ROI Calculator</p>
+  </footer>
+</div>
+
+<!-- ─── Mobile sticky bar ─── -->
+<div class="mobile-bar" id="mobileBar">
+  <div class="mb-stat">
+    <p class="mb-label">Monthly</p>
+    <p class="mb-val orange" id="mbMonthly">—</p>
+  </div>
+  <div class="mb-stat">
+    <p class="mb-label">Daily</p>
+    <p class="mb-val" id="mbDaily">—</p>
+  </div>
+  <div class="mb-stat">
+    <p class="mb-label">ROI</p>
+    <p class="mb-val orange" id="mbRoi">—</p>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied ✓</div>
+
+<script>
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function getEaster(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(y,mo-1,day);
+}
+
+function getHolidays(y){
+  const e=getEaster(y);
+  const add=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return{
+    [fmt(new Date(y,0,1))]:'New Year',
+    [fmt(add(e,-2))]:'Good Friday',
+    [fmt(new Date(y,3,25))]:'Freedom Day',
+    [fmt(new Date(y,4,1))]:"Workers' Day",
+    [fmt(add(e,60))]:'Corpus Christi',
+    [fmt(new Date(y,5,10))]:'Portugal Day',
+    [fmt(new Date(y,7,15))]:'Assumption',
+    [fmt(new Date(y,9,5))]:'Republic Day',
+    [fmt(new Date(y,10,1))]:'All Saints',
+    [fmt(new Date(y,11,1))]:'Restoration',
+    [fmt(new Date(y,11,8))]:'Immaculate Conception',
+    [fmt(new Date(y,11,25))]:'Christmas',
+  };
+}
+
+function countWeekdays(s,e){
+  let c=0;const d=new Date(s);
+  while(d<=e){const w=d.getDay();if(w&&w!==6)c++;d.setDate(d.getDate()+1);}
+  return c;
+}
+
+function countHolidaysInRange(h,s,e){
+  let c=0;const hit=[];
+  for(const[ds,n] of Object.entries(h)){
+    const d=new Date(ds+'T00:00:00');
+    if(d>=s&&d<=e){const w=d.getDay();if(w&&w!==6){c++;hit.push(n);}}
+  }
+  return{count:c,hit};
+}
+
+const fmtEUR=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+const fmtEUR2=n=>new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const fmtPct=n=>`${(n*100).toFixed(2)}%`;
+const fmtDate=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+const fmtShort=d=>d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+const isoDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+/* ════════════════════════════════════════════
+   RATES
+════════════════════════════════════════════ */
+const RATES={
+  clt:    {ss:0.2375,vacSub:1/12,xmasSub:1/12,insurance:0.01,label:'Contrato de Trabalho'},
+  estagio:{ss:0.2375,vacSub:0,   xmasSub:0,   insurance:0.01,label:'Estágio Profissional (IEFP)'},
+  verde:  {ss:0,     vacSub:0,   xmasSub:0,   insurance:0,   label:'Recibo Verde'},
+};
+
+/* ════════════════════════════════════════════
+   CALENDAR INIT
+════════════════════════════════════════════ */
+const realToday=new Date(); realToday.setHours(0,0,0,0);
+const dateInput=document.getElementById('customDate');
+
+let calState={};
+
+function buildCalendar(){
+  const v=dateInput.value;
+  let target=v?new Date(v+'T00:00:00'):new Date(realToday);
+  target.setHours(0,0,0,0);
+  const yearStart=new Date(target.getFullYear(),0,1);
+  const holidays=getHolidays(target.getFullYear());
+  const{count:holsInRange,hit:holNames}=countHolidaysInRange(holidays,yearStart,target);
+  const rawWeekdays=countWeekdays(yearStart,target);
+  const baseWorkDays=rawWeekdays-holsInRange;
+  calState={target,yearStart,holsInRange,holNames,rawWeekdays,baseWorkDays};
+
+  const isFuture=target>realToday;
+  document.getElementById('todayStr').textContent=v
+    ? (isFuture?`Projected to: ${fmtDate(target)}`:`Up to: ${fmtDate(target)}`)
+    : `As of ${fmtDate(realToday)}`;
+
+  const pills=document.getElementById('calPills');
+  pills.innerHTML='';
+  const pill=(t,cls)=>{const el=document.createElement('span');el.className='pill '+cls;el.textContent=t;return el;};
+  pills.appendChild(pill(`${rawWeekdays} weekdays`,'default'));
+  pills.appendChild(pill(`${holsInRange} holidays`,'orange'));
+  pills.appendChild(pill(`${baseWorkDays} working days`,'blue'));
+}
+
+buildCalendar();
+dateInput.addEventListener('change',()=>{buildCalendar();recalculate();});
+
+/* ════════════════════════════════════════════
+   CALCULATION
+════════════════════════════════════════════ */
+let lastCalc={};
+
+function calcEmployerCost(gross,contractType,monthsElapsed){
+  const r=RATES[contractType];
+  const ssAmt=gross*r.ss;
+  const vacSubAmt=gross*r.vacSub;
+  const xmasSubAmt=gross*r.xmasSub;
+  const insAmt=gross*r.insurance;
+  const totalMonthly=gross+ssAmt+vacSubAmt+xmasSubAmt+insAmt;
+  const totalToDate=totalMonthly*monthsElapsed;
+  return{ssAmt,vacSubAmt,xmasSubAmt,insAmt,totalMonthly,totalToDate,rates:r};
+}
+
+function recalculate(){
+  const totalValue=parseFloat(document.getElementById('totalValue').value);
+  const vacDays=parseFloat(document.getElementById('vacDays').value)||0;
+  const monthlyGross=parseFloat(document.getElementById('monthlyGross').value)||0;
+  const contractType=document.getElementById('contractType').value;
+  const errEl=document.getElementById('errMsg');
+
+  const placeholder=document.getElementById('placeholder');
+  const liveResults=document.getElementById('liveResults');
+
+  if(!totalValue||totalValue<=0||!monthlyGross||monthlyGross<=0){
+    errEl.classList.toggle('show', !!(
+      (document.getElementById('totalValue').value && totalValue<=0) ||
+      (document.getElementById('monthlyGross').value && monthlyGross<=0)
+    ));
+    placeholder.style.display='block';
+    liveResults.style.display='none';
+    document.getElementById('reportWrap').classList.remove('visible');
+    document.getElementById('mobileBar').classList.remove('active');
+    return;
+  }
+
+  errEl.classList.remove('show');
+
+  const{target,yearStart,holsInRange,holNames,rawWeekdays,baseWorkDays}=calState;
+  const effectiveDays=Math.max(baseWorkDays-vacDays,1);
+  const totalHours=effectiveDays*8;
+  const calDays=Math.round((target-yearStart)/86400000)+1;
+  const monthsElapsed=calDays/(365.25/12);
+  /* Derive hourly rate: monthly gross ÷ average hours per month in this period */
+  const avgHoursPerMonth=(effectiveDays/monthsElapsed)*8;
+  const hourlyRate=monthlyGross/avgHoursPerMonth;
+  const totalCost=hourlyRate*totalHours;
+  const hourlyValue=totalValue/totalHours;
+  const dailyValue=totalValue/effectiveDays;
+  const monthlyValue=totalValue/monthsElapsed;
+  const multiplier=(totalValue/totalCost);
+  const returnPerEuro=totalValue/totalCost;
+  const hasCost=true;
+  const cost=calcEmployerCost(monthlyGross,contractType,monthsElapsed);
+
+  lastCalc={totalValue,vacDays,hourlyRate,monthlyGross,contractType,effectiveDays,totalHours,
+            totalCost,monthsElapsed,hourlyValue,dailyValue,monthlyValue,multiplier,returnPerEuro,
+            rawWeekdays,holsInRange,holNames,target,yearStart,cost,hasCost};
+
+  /* ── Render KPIs ── */
+  document.getElementById('kMonthly').textContent=fmtEUR(monthlyValue);
+  document.getElementById('kMonthlySub').textContent=`avg over ${monthsElapsed.toFixed(1)} months`;
+  document.getElementById('kDaily').textContent=fmtEUR(dailyValue);
+  document.getElementById('kHourly').textContent=fmtEUR(hourlyValue);
+
+  /* ── ROI card ── */
+  const multEl=document.getElementById('roiMult');
+  multEl.textContent=`${multiplier.toFixed(1)}×`;
+  multEl.className='roi-mult';
+  document.getElementById('roiText').innerHTML=
+    `Every <strong>€1</strong> spent on you returns <strong>${fmtEUR2(returnPerEuro)}</strong>. `+
+    `Your total direct cost to date: <strong>${fmtEUR(totalCost)}</strong>.`;
+
+  const pct=Math.min((multiplier/20)*100,100);
+  document.getElementById('roiBar').style.width=pct+'%';
+  const maxVal=multiplier>20?`${Math.ceil(multiplier/5)*5}×`:'20×';
+  document.getElementById('barMax').textContent=maxVal;
+  if(multiplier>20) document.getElementById('roiBar').style.width='100%';
+
+  /* ── Breakdown ── */
+  document.getElementById('breakdown').innerHTML=`
+    <div class="bd-item"><strong>${effectiveDays}</strong>effective days</div>
+    <div class="bd-item"><strong>${totalHours.toLocaleString()}</strong>hours worked</div>
+    <div class="bd-item"><strong>${vacDays}</strong>vacation days</div>
+    <div class="bd-item"><strong>${holsInRange}</strong>holidays off</div>
+    <div class="bd-item"><strong>${fmtEUR2(hourlyRate)}</strong>derived hourly rate</div>
+    <div class="bd-item"><strong>${fmtEUR(totalCost)}</strong>total direct cost</div>
+  `;
+
+  /* ── Cost block ── */
+  const costCard=document.getElementById('costCard');
+  if(hasCost&&cost){
+    costCard.style.display='block';
+    document.getElementById('costTotal').textContent=fmtEUR2(cost.totalToDate);
+
+    const r=RATES[contractType];
+    let rows='';
+    const row=(label,note,val,cls='')=>`
+      <tr class="${cls}">
+        <td class="td-label">${label}${note?`<small>${note}</small>`:''}</td>
+        <td class="td-val">${val}</td>
+      </tr>`;
+
+    rows+=row('Gross Monthly Wage','Base salary before deductions',fmtEUR2(monthlyGross));
+    if(r.ss>0)     rows+=row(`SS Employer (${fmtPct(r.ss)})`,'Segurança Social — quota patronal',`${fmtEUR2(cost.ssAmt)}/mo`);
+    if(r.vacSub>0) rows+=row('Vacation Subsidy (1/12)','Provisioned monthly',`${fmtEUR2(cost.vacSubAmt)}/mo`);
+    if(r.xmasSub>0)rows+=row('Christmas Subsidy (1/12)','Provisioned monthly',`${fmtEUR2(cost.xmasSubAmt)}/mo`);
+    if(r.insurance>0)rows+=row(`Work Accident Ins. (~${fmtPct(r.insurance)})`,'Estimate',`${fmtEUR2(cost.insAmt)}/mo`);
+    rows+=row('Total Monthly Cost to Company','',`${fmtEUR2(cost.totalMonthly)}/mo`,'total-row');
+
+    document.getElementById('costTable').innerHTML=rows;
+    document.getElementById('costFooter').innerHTML=
+      contractType==='verde'
+        ? '⚠ Recibo Verde: no employer SS or subsidies apply — shown is the invoiced value only.'
+        : contractType==='estagio'
+        ? '⚠ Estágio IEFP: SS quota patronal applies (23.75%). Holiday and Christmas subsidies are not mandatory under the base IEFP framework.'
+        : 'SS rate 23.75% per Lei n.º 110/2009 · Work accident insurance is an estimate — actual rate varies by risk class · Subsidies provisioned at 1/12 per month.';
+  } else {
+    costCard.style.display='none';
+  }
+
+  /* ── Show results ── */
+  placeholder.style.display='none';
+  liveResults.style.display='flex';
+
+  /* ── Mobile bar ── */
+  const mb=document.getElementById('mobileBar');
+  mb.classList.add('active');
+  document.getElementById('mbMonthly').textContent=fmtEUR(monthlyValue);
+  document.getElementById('mbDaily').textContent=fmtEUR(dailyValue);
+  document.getElementById('mbRoi').textContent=multiplier.toFixed(1)+'×';
+
+  buildReport(lastCalc);
+  document.getElementById('reportWrap').classList.add('visible');
+}
+
+/* ════════════════════════════════════════════
+   REPORT
+════════════════════════════════════════════ */
+function buildReport(c){
+  const year=c.target.getFullYear();
+  const mult=c.multiplier;
+  let perfWord,perfPhrase;
+  if     (mult>=15){perfWord='exceptional';  perfPhrase='a standout result by any professional standard';}
+  else if(mult>=10){perfWord='outstanding';  perfPhrase='well above what most organisations consider a strong return';}
+  else if(mult>=6) {perfWord='strong';       perfPhrase='a healthy and commercially meaningful return on investment';}
+  else if(mult>=3) {perfWord='solid';        perfPhrase='a positive return that justifies the investment comfortably';}
+  else             {perfWord='developing';   perfPhrase='a foundation to build on as placements continue to accumulate';}
+
+  document.getElementById('rMetaDate').textContent=fmtShort(c.target);
+  document.getElementById('rMetaPeriod').textContent=`1 Jan – ${fmtShort(c.target)}`;
+  document.getElementById('rMetaDays').textContent=`${c.effectiveDays} effective days`;
+
+  let costSection='';
+  if(c.hasCost&&c.cost){
+    const r=RATES[c.contractType];
+    const roiVsCost=c.cost.totalToDate>0?(c.totalValue/c.cost.totalToDate).toFixed(1):'—';
+    let tableRows=`<tr><th>Component</th><th class="val">Monthly</th></tr>
+      <tr><td>Gross Monthly Wage</td><td class="val">${fmtEUR2(c.monthlyGross)}</td></tr>`;
+    if(r.ss>0)      tableRows+=`<tr><td>SS Employer (${fmtPct(r.ss)})</td><td class="val">${fmtEUR2(c.cost.ssAmt)}</td></tr>`;
+    if(r.vacSub>0)  tableRows+=`<tr><td>Vacation Subsidy (1/12)</td><td class="val">${fmtEUR2(c.cost.vacSubAmt)}</td></tr>`;
+    if(r.xmasSub>0) tableRows+=`<tr><td>Christmas Subsidy (1/12)</td><td class="val">${fmtEUR2(c.cost.xmasSubAmt)}</td></tr>`;
+    if(r.insurance>0)tableRows+=`<tr><td>Work Accident Ins.</td><td class="val">${fmtEUR2(c.cost.insAmt)}</td></tr>`;
+    tableRows+=`<tr class="total-r"><td><strong>Total Monthly Cost</strong></td><td class="val"><strong>${fmtEUR2(c.cost.totalMonthly)}</strong></td></tr>`;
+
+    costSection=`
+    <div class="report-section-head blue-head"><span>Company Cost — ${r.label}</span></div>
+    <p>Under a <strong class="blue">${r.label}</strong> arrangement, the true monthly cost to the company exceeds the gross wage due to mandatory employer contributions under Portuguese labour law.</p>
+    <table class="report-cost-table">${tableRows}</table>
+    <p>Over <strong class="blue">${c.monthsElapsed.toFixed(1)} months</strong>, total employer cost amounts to <strong class="blue">${fmtEUR2(c.cost.totalToDate)}</strong>. Against <strong>${fmtEUR(c.totalValue)}</strong> in value delivered, this yields a <strong class="blue">true cost ROI of ${roiVsCost}×</strong>.</p>`;
+  }
+
+  document.getElementById('reportBody').innerHTML=`
+    <p>This report covers <strong>1 January ${year}</strong> to <strong>${fmtDate(c.target)}</strong>, assessed against the Portuguese national working calendar.</p>
+    <div class="report-section-head"><span>Working Time</span></div>
+    <p>The calendar registers <strong>${c.rawWeekdays} weekdays</strong> in this period. Of those, <strong>${c.holsInRange} fall on public holidays</strong> — <em>${c.holNames.join(', ')}</em>. After discounting <strong>${c.vacDays} vacation day${c.vacDays!==1?'s':''}</strong>, the effective working time is <strong>${c.effectiveDays} days</strong> or roughly <strong>${c.totalHours.toLocaleString()} billable hours</strong>.</p>
+    <div class="report-section-head"><span>Value Delivered</span></div>
+    <p>A total of <strong>${fmtEUR(c.totalValue)}</strong> was delivered — equating to <strong>${fmtEUR(c.monthlyValue)}/month</strong>, <strong>${fmtEUR(c.dailyValue)}/day</strong>, and <strong>${fmtEUR2(c.hourlyValue)}/hour</strong>.</p>
+    <div class="report-section-head"><span>Return on Investment</span></div>
+    <p>At a derived rate of <strong>${fmtEUR2(c.hourlyRate)}/h</strong> (from the monthly gross of ${fmtEUR2(c.monthlyGross)}), the company's direct time investment amounts to <strong>${fmtEUR(c.totalCost)}</strong>, yielding an <strong>ROI multiplier of ${c.multiplier.toFixed(1)}×</strong> — every euro of direct cost returned <strong>${fmtEUR2(c.returnPerEuro)}</strong>.</p>
+    ${costSection}
+  `;
+
+  document.getElementById('verdict').innerHTML=
+    `<strong>Verdict:</strong> Performance is <strong>${perfWord}</strong> — ${perfPhrase}. At <strong>${c.multiplier.toFixed(1)}×</strong> on direct cost${c.hasCost&&c.cost?` and <strong>${(c.totalValue/c.cost.totalToDate).toFixed(1)}×</strong> on total employment cost`:''}, the numbers present a compelling case for continued investment.`;
+}
+
+/* ════════════════════════════════════════════
+   COPY REPORT
+════════════════════════════════════════════ */
+function copyReport(){
+  const c=lastCalc; if(!c.totalValue)return;
+  const r=c.hasCost?RATES[c.contractType]:null;
+  const roiVsCost=c.hasCost&&c.cost&&c.cost.totalToDate>0?(c.totalValue/c.cost.totalToDate).toFixed(1):'—';
+  let costBlock='';
+  if(c.hasCost&&c.cost&&r){
+    costBlock=`\nCOMPANY COST (${r.label})
+  Gross monthly wage    : ${fmtEUR2(c.monthlyGross)}${r.ss>0?`\n  SS employer (${fmtPct(r.ss)})    : ${fmtEUR2(c.cost.ssAmt)}/mo`:''}${r.vacSub>0?`\n  Vacation subsidy 1/12 : ${fmtEUR2(c.cost.vacSubAmt)}/mo`:''}${r.xmasSub>0?`\n  Christmas sub. 1/12   : ${fmtEUR2(c.cost.xmasSubAmt)}/mo`:''}${r.insurance>0?`\n  Work accident ins.    : ${fmtEUR2(c.cost.insAmt)}/mo`:''}
+  Total monthly cost    : ${fmtEUR2(c.cost.totalMonthly)}
+  Total cost to date    : ${fmtEUR2(c.cost.totalToDate)}
+  True cost ROI         : ${roiVsCost}×
+${'─'.repeat(44)}`;
+  }
+  const txt=`RECRUITER ROI REPORT
+Generated : ${fmtDate(c.target)}
+Period    : 1 Jan ${c.target.getFullYear()} – ${fmtDate(c.target)}
+${'─'.repeat(44)}
+WORKING TIME
+  Raw weekdays    : ${c.rawWeekdays}
+  Holidays off    : ${c.holsInRange} (${c.holNames.join(', ')})
+  Vacation days   : ${c.vacDays}
+  Effective days  : ${c.effectiveDays}
+  Hours (@ 8h/d)  : ${c.totalHours}
+${'─'.repeat(44)}
+VALUE DELIVERED
+  Total           : ${fmtEUR2(c.totalValue)}
+  Monthly avg     : ${fmtEUR2(c.monthlyValue)}
+  Daily           : ${fmtEUR2(c.dailyValue)}
+  Hourly          : ${fmtEUR2(c.hourlyValue)}
+${'─'.repeat(44)}
+ROI
+  Hourly rate     : ${fmtEUR2(c.hourlyRate)}
+  Total cost      : ${fmtEUR2(c.totalCost)}
+  ROI multiplier  : ${c.multiplier.toFixed(1)}×
+  Return per €1   : ${fmtEUR2(c.returnPerEuro)}
+${'─'.repeat(44)}
+${costBlock}`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2400);
+  });
+}
+
+/* ════════════════════════════════════════════
+   LIVE INPUT LISTENERS
+════════════════════════════════════════════ */
+['totalValue','vacDays','monthlyGross'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',recalculate);
+});
+document.getElementById('contractType').addEventListener('change',recalculate);
+document.addEventListener('keydown',e=>{if(e.key==='Enter')recalculate();});
+
+/* ════════════════════════════════════════════
+   PWA SERVICE WORKER REGISTRATION
+════════════════════════════════════════════ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg=>{
+        console.log('Service Worker registered successfully:', reg);
+      })
+      .catch(err=>{
+        console.error('Service Worker registration failed:', err);
+      });
+  });
+}
+
+// Detect if app is installed
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  console.log('PWA install prompt available');
+});
+</script>
+</body>
+</html>

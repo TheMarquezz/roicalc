@@ -1,0 +1,5 @@
+# Cloudflare Pages Configuration for ROI Calculator PWA
+# This is a static site - no build process needed
+
+name = "roi-calculator"
+compatibility_date = "2024-01-01"
